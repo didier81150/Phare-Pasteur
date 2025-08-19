@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateforme Harcèlement - Version Stable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: sans-serif; }
+        .hidden { display: none; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="container mx-auto p-6">
+
+        <!-- PAGE: Accueil -->
+        <div id="homePage" class="fade-in">
+            <div class="bg-white p-8 rounded-xl shadow-md max-w-xl mx-auto text-center">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">Plateforme de Signalement</h1>
+                <div class="space-y-4">
+                    <button id="goToStudentBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg">Espace Élève</button>
+                    <button id="goToManagerBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg">Espace Gestionnaire</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: Connexion Gestionnaire -->
+        <div id="managerLoginPage" class="hidden fade-in">
+            <div class="bg-white p-8 rounded-xl shadow-md max-w-sm mx-auto">
+                <h2 class="text-2xl font-bold text-center mb-6">Connexion Gestionnaire</h2>
+                <form id="managerLoginForm">
+                    <input type="password" id="managerPassword" placeholder="Mot de passe" required class="w-full p-3 border rounded-lg mb-4">
+                    <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg">Se connecter</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- PAGE: Tableau de Bord Gestionnaire -->
+        <div id="managerDashboardPage" class="hidden fade-in space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-2xl font-bold mb-4">Gestion des Élèves</h2>
+                <button id="importBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Importer Fichier Élèves (.xlsx)</button>
+                <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls">
+                <div id="studentCount" class="mt-4"></div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-2xl font-bold mb-4">Signalements</h2>
+                <div id="reportsContainer"></div>
+            </div>
+        </div>
+
+        <!-- PAGE: Espace Élève (Connexion & Signalement) -->
+        <div id="studentSpacePage" class="hidden fade-in">
+             <div class="bg-white p-8 rounded-xl shadow-md max-w-xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6">Signaler une situation</h2>
+                <form id="reportForm" class="space-y-4">
+                    <input type="text" id="studentId" placeholder="Ton identifiant (ex: prenom.nom)" required class="w-full p-3 border rounded-lg">
+                    <input type="password" id="studentPassword" placeholder="Ton mot de passe provisoire" required class="w-full p-3 border rounded-lg">
+                    <textarea id="reportDescription" placeholder="Décris la situation ici..." required rows="5" class="w-full p-3 border rounded-lg"></textarea>
+                    <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg">Envoyer le signalement</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const MANAGER_PASSWORD = 'PhareSimple2025';
+            const ENCRYPTION_KEY = 'safe-mode-key-!@#';
+
+            // --- State Management ---
+            let state = {
+                students: [],
+                reports: [],
+                isManagerLoggedIn: false
+            };
+
+            const loadState = () => {
+                const encryptedStudents = localStorage.getItem('app_students');
+                const encryptedReports = localStorage.getItem('app_reports');
+                state.students = decrypt(encryptedStudents) || [];
+                state.reports = decrypt(encryptedReports) || [];
+            };
+
+            const saveState = () => {
+                localStorage.setItem('app_students', encrypt(state.students));
+                localStorage.setItem('app_reports', encrypt(state.reports));
+            };
+
+            const encrypt = (data) => CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString();
+            const decrypt = (data) => {
+                if (!data) return null;
+                try {
+                    const bytes = CryptoJS.AES.decrypt(data, ENCRYPTION_KEY);
+                    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                } catch { return null; }
+            };
+
+            // --- UI Navigation ---
+            const pages = ['homePage', 'managerLoginPage', 'managerDashboardPage', 'studentSpacePage'];
+            const showPage = (pageId) => {
+                pages.forEach(p => document.getElementById(p).classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+            };
+
+            // --- Rendering ---
+            const renderDashboard = () => {
+                document.getElementById('studentCount').textContent = `Nombre d'élèves enregistrés : ${state.students.length}`;
+                const reportsContainer = document.getElementById('reportsContainer');
+                reportsContainer.innerHTML = '';
+                if (state.reports.length === 0) {
+                    reportsContainer.innerHTML = '<p>Aucun signalement.</p>';
+                    return;
+                }
+                state.reports.forEach(r => {
+                    const student = state.students.find(s => s.id === r.studentId) || {};
+                    const reportDiv = document.createElement('div');
+                    reportDiv.className = 'p-4 border rounded-lg bg-gray-50';
+                    reportDiv.innerHTML = `<p><strong>Élève :</strong> ${r.studentId} (${student.class || 'Classe inconnue'})</p><p class="mt-2">${r.description}</p>`;
+                    reportsContainer.appendChild(reportDiv);
+                });
+            };
+            
+            // --- Event Listeners ---
+            document.getElementById('goToStudentBtn').addEventListener('click', () => showPage('studentSpacePage'));
+            document.getElementById('goToManagerBtn').addEventListener('click', () => showPage('managerLoginPage'));
+            
+            document.getElementById('managerLoginForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (document.getElementById('managerPassword').value === MANAGER_PASSWORD) {
+                    state.isManagerLoggedIn = true;
+                    showPage('managerDashboardPage');
+                    renderDashboard();
+                } else {
+                    alert('Mot de passe incorrect.');
+                }
+            });
+
+            document.getElementById('importBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+            document.getElementById('fileInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        const newStudents = json.map(row => ({
+                            id: row['Identifiant']?.toString().trim(),
+                            class: row['Classe']?.toString().trim(),
+                            tempPassword: row['Mot de passe provisoire']?.toString().trim()
+                        })).filter(s => s.id && s.class && s.tempPassword);
+
+                        state.students = newStudents; // Remplacement simple pour cette version
+                        saveState();
+                        renderDashboard();
+                        alert(`${newStudents.length} élèves importés.`);
+                    } catch { alert('Erreur lors de la lecture du fichier.'); }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            document.getElementById('reportForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = document.getElementById('studentId').value;
+                const pass = document.getElementById('studentPassword').value;
+                const desc = document.getElementById('reportDescription').value;
+
+                const student = state.students.find(s => s.id === id && s.tempPassword === pass);
+                if (student) {
+                    state.reports.push({ studentId: id, description: desc });
+                    saveState();
+                    alert('Signalement envoyé. Merci.');
+                    showPage('homePage');
+                    document.getElementById('reportForm').reset();
+                } else {
+                    alert('Identifiant ou mot de passe provisoire incorrect.');
+                }
+            });
+
+            // --- Initial Load ---
+            loadState();
+            showPage('homePage');
+        });
+    </script>
+
+</body>
+</html>
