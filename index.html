@@ -244,25 +244,15 @@
                     <button onclick="referentLogout()" class="text-red-600 hover:text-red-800">Déconnexion</button>
                 </div>
 
-                <!-- Export/Import Configuration -->
+                <!-- Export Configuration -->
                 <div class="mb-8 p-6 bg-blue-50 rounded-lg">
-                    <h3 class="text-lg font-semibold mb-4">🔄 Sauvegarde et Restauration</h3>
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <h4 class="text-md font-medium mb-2">Exporter la configuration</h4>
-                            <p class="text-sm text-gray-600 mb-3">Sauvegarde complète : élèves, signalements, paramètres</p>
-                            <button onclick="exportConfiguration()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                                📥 Télécharger sauvegarde
-                            </button>
-                        </div>
-                        <div>
-                            <h4 class="text-md font-medium mb-2">Importer une configuration</h4>
-                            <p class="text-sm text-gray-600 mb-2">Restaure une sauvegarde précédente</p>
-                            <input type="file" id="configFile" accept=".json" class="mb-3 text-sm w-full">
-                            <button onclick="importConfiguration()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-                                📤 Restaurer sauvegarde
-                            </button>
-                        </div>
+                    <h3 class="text-lg font-semibold mb-4">📥 Sauvegarde des données</h3>
+                    <div>
+                        <h4 class="text-md font-medium mb-2">Exporter la configuration</h4>
+                        <p class="text-sm text-gray-600 mb-3">Sauvegarde complète : élèves, signalements, paramètres</p>
+                        <button onclick="exportConfiguration()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                            📥 Télécharger sauvegarde
+                        </button>
                     </div>
                     
                     <!-- Instructions GitHub -->
@@ -409,6 +399,19 @@ bernard.paul	5A	temp789"></textarea>
                     <button onclick="adminLogout()" class="text-red-600 hover:text-red-800">Déconnexion</button>
                 </div>
 
+                <!-- Import Configuration -->
+                <div class="mb-8 p-6 bg-green-50 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4">📤 Restauration des données</h3>
+                    <div>
+                        <h4 class="text-md font-medium mb-2">Importer une configuration</h4>
+                        <p class="text-sm text-gray-600 mb-3">Restaure une sauvegarde précédente</p>
+                        <input type="file" id="configFile" accept=".json" class="mb-3 text-sm w-full">
+                        <button onclick="importConfiguration()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                            📤 Restaurer sauvegarde
+                        </button>
+                    </div>
+                </div>
+
                 <div class="grid md:grid-cols-2 gap-6">
                     <!-- Upload logo -->
                     <div class="p-6 bg-gray-50 rounded-lg">
@@ -512,7 +515,7 @@ bernard.paul	5A	temp789"></textarea>
             schoolLogo: null, // Sera défini plus bas si vous avez un logo
             initialStudents: [
                 // Exemple d'élèves pré-configurés (supprimez ou modifiez selon vos besoins)
-                { id: "test.eleve", class: "6G1", tempPassword: "test123", password: null }
+                // { id: "test.eleve", class: "6G1", tempPassword: "test123", password: null }
                 // { id: "dupont.marie", class: "6G2", tempPassword: "temp456", password: null }
             ]
         };
@@ -1489,5 +1492,5 @@ bernard.paul	5A	temp789"></textarea>
             return password;
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9727ecc17195e74e',t:'MTc1NTc1NjE4MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97282c92b7112a19',t:'MTc1NTc1ODc5NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
