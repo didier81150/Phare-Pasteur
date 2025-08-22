@@ -512,27 +512,20 @@ bernard.paul	5A	temp789"></textarea>
         const INITIAL_CONFIG = {
             schoolName: "Collège [NOM DE VOTRE ÉTABLISSEMENT]", // Changez le nom ici
             referentPassword: "Ph@re2025", // Changez ce mot de passe
-            schoolLogo: null, // Sera défini plus bas si vous avez un logo
             initialStudents: [
-                // Exemple d'élèves pré-configurés (supprimez ou modifiez selon vos besoins)
                 // { id: "test.eleve", class: "6G1", tempPassword: "test123", password: null }
-                // { id: "dupont.marie", class: "6G2", tempPassword: "temp456", password: null }
             ]
         };
 
         // Logo par défaut en base64 (remplacez par votre logo si nécessaire)
-        // Pour convertir votre logo : https://base64.guru/converter/encode/image
-        // Collez votre logo en base64 entre les guillemets ci-dessous :
         const DEFAULT_LOGO_BASE64 = null; // "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
 
         // ========================================
-        // VARIABLES GLOBALES
+        // ÉTAT DE L'APPLICATION
         // ========================================
-        let currentUser = null;
-        let studentsList = [];
-        let reportsList = [];
-        let referentPassword = INITIAL_CONFIG.referentPassword;
-        const adminPassword = '@dmiP@steur2025';
+        let appState = {};
+        let currentUser = null; // Donnée de session, non persistée
+        const adminPassword = '@dmiP@steur2025'; // Mot de passe fixe
 
         // ========================================
         // INITIALISATION
@@ -543,79 +536,65 @@ bernard.paul	5A	temp789"></textarea>
         });
 
         function initializeApplication() {
-            // Charger les données ou initialiser avec la configuration par défaut
-            loadData();
-            
-            // Appliquer la configuration initiale si c'est la première fois
-            if (!localStorage.getItem('appInitialized')) {
-                applyInitialConfiguration();
-                localStorage.setItem('appInitialized', 'true');
-            }
-            
-            // Mettre à jour l'affichage
+            loadState();
             updateDisplay();
         }
 
-        function applyInitialConfiguration() {
-            // Appliquer le nom de l'établissement
-            if (INITIAL_CONFIG.schoolName && INITIAL_CONFIG.schoolName !== "Collège [NOM DE VOTRE ÉTABLISSEMENT]") {
-                localStorage.setItem('schoolName', INITIAL_CONFIG.schoolName);
-            }
-            
-            // Appliquer le logo par défaut
-            if (DEFAULT_LOGO_BASE64) {
-                localStorage.setItem('schoolLogo', DEFAULT_LOGO_BASE64);
-            }
-            
-            // Appliquer le mot de passe référent
-            if (INITIAL_CONFIG.referentPassword !== "Ph@re2025") {
-                referentPassword = INITIAL_CONFIG.referentPassword;
-                localStorage.setItem('referentPassword', referentPassword);
-            }
-            
-            // Ajouter les élèves initiaux
-            if (INITIAL_CONFIG.initialStudents && INITIAL_CONFIG.initialStudents.length > 0) {
-                studentsList = [...INITIAL_CONFIG.initialStudents];
-                localStorage.setItem('studentsList', JSON.stringify(studentsList));
+        function loadState() {
+            try {
+                const savedState = localStorage.getItem('antiHarcelementAppState');
+                if (savedState) {
+                    appState = JSON.parse(savedState);
+                } else {
+                    // Premier chargement, initialisation depuis la configuration
+                    appState = {
+                        schoolName: INITIAL_CONFIG.schoolName,
+                        schoolLogo: DEFAULT_LOGO_BASE64,
+                        referentPassword: INITIAL_CONFIG.referentPassword,
+                        studentsList: INITIAL_CONFIG.initialStudents || [],
+                        reportsList: [],
+                        appInitialized: true
+                    };
+                    saveState();
+                }
+            } catch (error) {
+                console.error("Erreur lors du chargement de l'état, réinitialisation de l'état.", error);
+                // En cas d'erreur de parsing, on réinitialise l'état
+                appState = {
+                    schoolName: INITIAL_CONFIG.schoolName,
+                    schoolLogo: DEFAULT_LOGO_BASE64,
+                    referentPassword: INITIAL_CONFIG.referentPassword,
+                    studentsList: INITIAL_CONFIG.initialStudents || [],
+                    reportsList: [],
+                    appInitialized: true
+                };
+                saveState();
             }
         }
 
-        function loadData() {
-            // Charger les données depuis localStorage
-            const savedStudents = localStorage.getItem('studentsList');
-            if (savedStudents) {
-                studentsList = JSON.parse(savedStudents);
-            }
-
-            const savedReports = localStorage.getItem('reportsList');
-            if (savedReports) {
-                reportsList = JSON.parse(savedReports);
-            }
-
-            const savedReferentPassword = localStorage.getItem('referentPassword');
-            if (savedReferentPassword) {
-                referentPassword = savedReferentPassword;
+        function saveState() {
+            try {
+                localStorage.setItem('antiHarcelementAppState', JSON.stringify(appState));
+            } catch (error) {
+                console.error("Erreur lors de la sauvegarde de l'état :", error);
+                alert("Une erreur critique est survenue. Impossible de sauvegarder les modifications. Veuillez exporter vos données si possible.");
             }
         }
 
         function updateDisplay() {
-            // Mettre à jour le nom de l'établissement
-            const savedSchoolName = localStorage.getItem('schoolName');
-            if (savedSchoolName) {
-                document.getElementById('schoolTitle').textContent = savedSchoolName;
+            if (appState.schoolName) {
+                document.getElementById('schoolTitle').textContent = appState.schoolName;
             }
-
-            // Mettre à jour le logo
-            const savedLogo = localStorage.getItem('schoolLogo');
-            if (savedLogo) {
-                document.getElementById('logoContainer').innerHTML = '<img src="' + savedLogo + '" alt="Logo établissement" class="w-24 h-24 mx-auto rounded-full object-cover">';
+            if (appState.schoolLogo) {
+                document.getElementById('logoContainer').innerHTML = `<img src="${appState.schoolLogo}" alt="Logo établissement" class="w-24 h-24 mx-auto rounded-full object-cover">`;
+            } else {
+                document.getElementById('logoContainer').innerHTML = `
+                    <div class="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg class="w-12 h-12 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>`;
             }
-        }
-
-        function saveData() {
-            localStorage.setItem('studentsList', JSON.stringify(studentsList));
-            localStorage.setItem('reportsList', JSON.stringify(reportsList));
-            localStorage.setItem('referentPassword', referentPassword);
         }
 
         // ========================================
@@ -623,69 +602,39 @@ bernard.paul	5A	temp789"></textarea>
         // ========================================
         function exportConfiguration() {
             try {
-                const config = {
-                    version: "1.0",
+                const configToExport = {
+                    version: "2.0",
                     exportDate: new Date().toISOString(),
-                    schoolName: localStorage.getItem('schoolName') || INITIAL_CONFIG.schoolName,
-                    schoolLogo: localStorage.getItem('schoolLogo'),
-                    referentPassword: referentPassword,
-                    adminPassword: adminPassword,
-                    studentsList: studentsList,
-                    reportsList: reportsList,
-                    appInitialized: localStorage.getItem('appInitialized')
+                    ...appState
                 };
 
-                const dataStr = JSON.stringify(config, null, 2);
+                const dataStr = JSON.stringify(configToExport, null, 2);
                 const dataBlob = new Blob([dataStr], {type: 'application/json'});
-                
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(dataBlob);
-                const fileName = 'config_antiharcellement_' + new Date().toISOString().split('T')[0] + '.json';
+                const fileName = `config_antiharcellement_${new Date().toISOString().split('T')[0]}.json`;
                 link.download = fileName;
-                
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
-                // Nettoyer l'URL
-                setTimeout(() => {
-                    URL.revokeObjectURL(link.href);
-                }, 100);
-                
-                alert('✅ Configuration exportée avec succès !\n\n' +
-                      'Fichier téléchargé : ' + fileName + '\n\n' +
-                      'Contenu exporté :\n' +
-                      '• ' + studentsList.length + ' élève(s)\n' +
-                      '• ' + reportsList.length + ' signalement(s)\n' +
-                      '• Configuration complète');
-                      
+                setTimeout(() => URL.revokeObjectURL(link.href), 100);
+
+                alert(`✅ Configuration exportée avec succès !\n\nFichier: ${fileName}\nContenu:\n• ${appState.studentsList.length} élève(s)\n• ${appState.reportsList.length} signalement(s)`);
             } catch (error) {
                 console.error('Erreur export:', error);
-                alert('❌ Erreur lors de l\'exportation !\n\nVeuillez réessayer.');
+                alert('❌ Erreur lors de l\'exportation !');
             }
         }
 
         function importConfiguration() {
             const fileInput = document.getElementById('configFile');
             const file = fileInput.files[0];
-
             if (!file) {
                 alert('⚠️ Veuillez sélectionner un fichier de configuration (.json)');
                 return;
             }
 
-            if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
-                alert('❌ Format de fichier incorrect !\n\nVeuillez sélectionner un fichier .json');
-                return;
-            }
-
-            if (!confirm('⚠️ ATTENTION - IMPORTATION DESTRUCTIVE !\n\n' +
-                        'Cette action va REMPLACER DÉFINITIVEMENT :\n' +
-                        '• Tous les élèves actuels (' + studentsList.length + ')\n' +
-                        '• Tous les signalements (' + reportsList.length + ')\n' +
-                        '• Toute la configuration\n\n' +
-                        '💾 RECOMMANDATION : Exportez d\'abord vos données actuelles\n\n' +
-                        'Voulez-vous vraiment continuer ?')) {
+            if (!confirm('⚠️ ATTENTION - IMPORTATION DESTRUCTIVE !\n\nCette action va REMPLACER DÉFINITIVEMENT toutes les données actuelles. Voulez-vous vraiment continuer ?')) {
                 return;
             }
 
@@ -693,164 +642,48 @@ bernard.paul	5A	temp789"></textarea>
             reader.onload = function(e) {
                 try {
                     const config = JSON.parse(e.target.result);
-                    
-                    // Validation stricte du fichier
-                    if (!config.version) {
-                        throw new Error('Fichier de configuration invalide : version manquante');
-                    }
-                    
-                    if (!Array.isArray(config.studentsList)) {
-                        throw new Error('Fichier de configuration invalide : liste d\'élèves corrompue');
-                    }
-                    
-                    if (!Array.isArray(config.reportsList)) {
-                        config.reportsList = []; // Créer une liste vide si manquante
+                    if (config.version !== "2.0" || !config.studentsList || config.reportsList === undefined) {
+                        throw new Error('Fichier de configuration invalide, corrompu ou d\'une version incompatible.');
                     }
 
-                    // Sauvegarder les anciennes données pour rollback en cas d'erreur
-                    const oldData = {
-                        studentsList: [...studentsList],
-                        reportsList: [...reportsList],
-                        referentPassword: referentPassword,
-                        schoolName: localStorage.getItem('schoolName'),
-                        schoolLogo: localStorage.getItem('schoolLogo')
+                    appState = {
+                        schoolName: config.schoolName,
+                        schoolLogo: config.schoolLogo,
+                        referentPassword: config.referentPassword,
+                        studentsList: config.studentsList,
+                        reportsList: config.reportsList,
+                        appInitialized: config.appInitialized
                     };
 
-                    try {
-                        // Restaurer les données principales
-                        studentsList = config.studentsList;
-                        reportsList = config.reportsList;
-                        
-                        // Restaurer le mot de passe référent
-                        if (config.referentPassword) {
-                            referentPassword = config.referentPassword;
-                        }
+                    saveState();
+                    updateDisplay();
+                    displayStudents();
+                    displayReports();
 
-                        // Restaurer les paramètres localStorage
-                        if (config.schoolName) {
-                            localStorage.setItem('schoolName', config.schoolName);
-                        }
-                        
-                        if (config.schoolLogo) {
-                            localStorage.setItem('schoolLogo', config.schoolLogo);
-                        }
-                        
-                        if (config.appInitialized) {
-                            localStorage.setItem('appInitialized', config.appInitialized);
-                        }
-
-                        // Sauvegarder toutes les données
-                        saveData();
-                        
-                        // Mettre à jour l'affichage
-                        updateDisplay();
-                        displayStudents();
-                        displayReports();
-
-                        // Réinitialiser le champ de fichier
-                        fileInput.value = '';
-
-                        alert('✅ IMPORTATION RÉUSSIE !\n\n' +
-                              'Configuration restaurée :\n' +
-                              '• ' + studentsList.length + ' élève(s) importé(s)\n' +
-                              '• ' + reportsList.length + ' signalement(s) importé(s)\n' +
-                              '• Paramètres appliqués\n\n' +
-                              '📅 Date d\'export : ' + (config.exportDate ? new Date(config.exportDate).toLocaleDateString('fr-FR') : 'Inconnue'));
-
-                    } catch (saveError) {
-                        // Rollback en cas d'erreur de sauvegarde
-                        console.error('Erreur sauvegarde, rollback:', saveError);
-                        studentsList = oldData.studentsList;
-                        reportsList = oldData.reportsList;
-                        referentPassword = oldData.referentPassword;
-                        
-                        if (oldData.schoolName) {
-                            localStorage.setItem('schoolName', oldData.schoolName);
-                        }
-                        if (oldData.schoolLogo) {
-                            localStorage.setItem('schoolLogo', oldData.schoolLogo);
-                        }
-                        
-                        throw saveError;
-                    }
-
+                    fileInput.value = '';
+                    alert(`✅ IMPORTATION RÉUSSIE !\n\nConfiguration restaurée :\n• ${appState.studentsList.length} élève(s)\n• ${appState.reportsList.length} signalement(s)`);
                 } catch (error) {
                     console.error('Erreur import:', error);
-                    let errorMessage = '❌ ERREUR D\'IMPORTATION !\n\n';
-                    
-                    if (error.message.includes('JSON')) {
-                        errorMessage += 'Le fichier sélectionné n\'est pas un fichier JSON valide.';
-                    } else if (error.message.includes('version')) {
-                        errorMessage += 'Ce fichier ne semble pas être une sauvegarde de cette application.';
-                    } else if (error.message.includes('élèves')) {
-                        errorMessage += 'Les données d\'élèves dans ce fichier sont corrompues.';
-                    } else {
-                        errorMessage += 'Le fichier est corrompu ou incompatible.\n\n' +
-                                      'Détail : ' + error.message;
-                    }
-                    
-                    errorMessage += '\n\n💡 Vérifiez que vous utilisez un fichier exporté par cette application.';
-                    alert(errorMessage);
+                    alert(`❌ ERREUR D'IMPORTATION !\n\n${error.message}`);
                 }
             };
-            
-            reader.onerror = function() {
-                alert('❌ Erreur de lecture du fichier !\n\nImpossible de lire le fichier sélectionné.');
-            };
-            
             reader.readAsText(file);
         }
 
         function setupEventListeners() {
-            // Formulaire de connexion élève
-            document.getElementById('studentLoginForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                handleStudentLogin();
-            });
-
-            // Formulaire de signalement
-            document.getElementById('reportForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                handleReport();
-            });
-
-            // Formulaire de connexion référent
-            document.getElementById('referentLoginForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                handleReferentLogin();
-            });
-
-            // Formulaire de connexion admin
-            document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                handleAdminLogin();
-            });
+            document.getElementById('studentLoginForm').addEventListener('submit', e => { e.preventDefault(); handleStudentLogin(); });
+            document.getElementById('reportForm').addEventListener('submit', e => { e.preventDefault(); handleReport(); });
+            document.getElementById('referentLoginForm').addEventListener('submit', e => { e.preventDefault(); handleReferentLogin(); });
+            document.getElementById('adminLoginForm').addEventListener('submit', e => { e.preventDefault(); handleAdminLogin(); });
         }
 
         // Navigation
-        function showHome() {
-            hideAllPages();
-            document.getElementById('homePage').classList.remove('hidden');
-        }
-
-        function showStudentLogin() {
-            hideAllPages();
-            document.getElementById('studentLoginPage').classList.remove('hidden');
-        }
-
-        function showReferentLogin() {
-            hideAllPages();
-            document.getElementById('referentLoginPage').classList.remove('hidden');
-        }
-
-        function showAdminLogin() {
-            hideAllPages();
-            document.getElementById('adminLoginPage').classList.remove('hidden');
-        }
-
+        function showHome() { hideAllPages(); document.getElementById('homePage').classList.remove('hidden'); }
+        function showStudentLogin() { hideAllPages(); document.getElementById('studentLoginPage').classList.remove('hidden'); }
+        function showReferentLogin() { hideAllPages(); document.getElementById('referentLoginPage').classList.remove('hidden'); }
+        function showAdminLogin() { hideAllPages(); document.getElementById('adminLoginPage').classList.remove('hidden'); }
         function hideAllPages() {
-            const pages = ['homePage', 'studentLoginPage', 'studentReportPage', 'referentLoginPage', 'referentDashboard', 'adminLoginPage', 'adminDashboard'];
-            pages.forEach(page => {
+            ['homePage', 'studentLoginPage', 'studentReportPage', 'referentLoginPage', 'referentDashboard', 'adminLoginPage', 'adminDashboard'].forEach(page => {
                 document.getElementById(page).classList.add('hidden');
             });
         }
@@ -861,72 +694,35 @@ bernard.paul	5A	temp789"></textarea>
             const studentClass = document.getElementById('studentClass').value;
             const tempPassword = document.getElementById('studentTempPassword').value.trim();
 
-            console.log('Tentative de connexion:', { studentId, studentClass, tempPassword });
-            console.log('Liste des élèves:', studentsList);
-
-            // Vérifier dans la liste des élèves avec le mot de passe provisoire (première connexion)
-            const student = studentsList.find(s => 
-                s.id.toLowerCase() === studentId && 
-                s.class === studentClass && 
-                s.tempPassword === tempPassword
-            );
-
-            console.log('Élève trouvé avec mot de passe provisoire:', student);
+            const student = appState.studentsList.find(s => s.id.toLowerCase() === studentId && s.class === studentClass && s.tempPassword === tempPassword);
 
             if (student && !student.password) {
-                // PREMIÈRE CONNEXION : Générer un nouveau mot de passe personnel
                 const newPassword = generatePassword();
                 student.password = newPassword;
+                saveState();
                 
-                console.log('Nouveau mot de passe généré:', newPassword);
-                
-                // Sauvegarder immédiatement dans localStorage
-                saveData();
-                
-                // Sauvegarder le mot de passe sur l'appareil de l'élève pour faciliter les connexions futures
-                const studentKey = 'student_' + studentId + '_' + studentClass;
-                localStorage.setItem(studentKey, newPassword);
-                
-                // Afficher le mot de passe dans une popup personnalisée
+                // Sauvegarder le mot de passe sur l'appareil de l'élève (non critique, aide à la connexion)
+                try {
+                    localStorage.setItem(`student_${studentId}_${studentClass}`, newPassword);
+                } catch (e) { console.warn("Impossible de sauvegarder le mot de passe localement pour l'élève.")}
+
                 showPasswordModal(newPassword);
-                
                 currentUser = student;
-                
             } else {
-                // Vérifier si l'élève essaie de se connecter avec son mot de passe personnel (connexions suivantes)
-                const studentWithPassword = studentsList.find(s => 
-                    s.id.toLowerCase() === studentId && 
-                    s.class === studentClass && 
-                    s.password === tempPassword
-                );
-                
-                console.log('Élève trouvé avec mot de passe personnel:', studentWithPassword);
-                
+                const studentWithPassword = appState.studentsList.find(s => s.id.toLowerCase() === studentId && s.class === studentClass && s.password === tempPassword);
                 if (studentWithPassword) {
-                    // Connexion réussie avec le mot de passe personnel
                     currentUser = studentWithPassword;
                     hideAllPages();
                     document.getElementById('studentReportPage').classList.remove('hidden');
                 } else {
-                    // Identifiants incorrects
-                    console.log('Aucun élève trouvé avec ces identifiants');
-                    alert('❌ CONNEXION ÉCHOUÉE\n\n' +
-                          'Vérifiez attentivement :\n' +
-                          '• Votre identifiant (format: nom.prenom)\n' +
-                          '• Votre classe\n' +
-                          '• Votre mot de passe\n\n' +
-                          '🔑 RAPPEL :\n' +
-                          '• PREMIÈRE connexion : utilisez le mot de passe provisoire\n' +
-                          '• Connexions suivantes : utilisez votre mot de passe personnel\n\n' +
-                          '❓ Si vous avez oublié votre mot de passe personnel, contactez le référent Phare.');
+                    alert('❌ CONNEXION ÉCHOUÉE\n\nVérifiez vos identifiants ou contactez le référent Phare si vous avez perdu votre mot de passe personnel.');
                 }
             }
         }
 
         function handleReferentLogin() {
             const password = document.getElementById('referentPassword').value;
-            
-            if (password === referentPassword) {
+            if (password === appState.referentPassword) {
                 hideAllPages();
                 document.getElementById('referentDashboard').classList.remove('hidden');
                 displayStudents();
@@ -938,15 +734,10 @@ bernard.paul	5A	temp789"></textarea>
 
         function handleAdminLogin() {
             const password = document.getElementById('adminPassword').value;
-            
             if (password === adminPassword) {
                 hideAllPages();
                 document.getElementById('adminDashboard').classList.remove('hidden');
-                // Pré-remplir le nom de l'établissement
-                const savedSchoolName = localStorage.getItem('schoolName');
-                if (savedSchoolName) {
-                    document.getElementById('schoolNameInput').value = savedSchoolName;
-                }
+                document.getElementById('schoolNameInput').value = appState.schoolName;
             } else {
                 alert('Mot de passe incorrect.');
             }
@@ -954,380 +745,142 @@ bernard.paul	5A	temp789"></textarea>
 
         // Gestion des signalements
         function handleReport() {
-            const role = document.querySelector('input[name="role"]:checked').value;
-            const location = document.getElementById('location').value;
-            const frequency = document.getElementById('frequency').value;
-            const description = document.getElementById('description').value;
-
             const report = {
                 id: Date.now(),
                 studentId: currentUser.id,
                 studentClass: currentUser.class,
-                role: role,
-                location: location,
-                frequency: frequency,
-                description: description,
+                role: document.querySelector('input[name="role"]:checked').value,
+                location: document.getElementById('location').value,
+                frequency: document.getElementById('frequency').value,
+                description: document.getElementById('description').value,
                 date: new Date().toLocaleDateString('fr-FR'),
                 seen: false,
                 treated: false
             };
-
-            reportsList.push(report);
-            saveData();
-
-            alert('Votre signalement a été envoyé avec succès. L\'équipe Phare va être alertée.');
+            appState.reportsList.push(report);
+            saveState();
+            alert('Votre signalement a été envoyé avec succès.');
             document.getElementById('reportForm').reset();
         }
 
         // Gestion référent
         function importFromPaste() {
             const pasteData = document.getElementById('studentDataPaste').value.trim();
-            
-            if (!pasteData) {
-                alert('⚠️ Veuillez coller les données des élèves dans la zone de texte.');
-                return;
-            }
+            if (!pasteData) return alert('⚠️ Veuillez coller les données.');
 
-            try {
-                const lines = pasteData.split('\n');
-                const importedStudents = [];
-                const duplicateStudents = [];
-                const errorLines = [];
-
-                lines.forEach((line, index) => {
-                    const trimmedLine = line.trim();
-                    if (trimmedLine) {
-                        // Séparer par tabulation ou espaces multiples
-                        const parts = trimmedLine.split(/\t+|\s{2,}/).map(part => part.trim());
-                        
-                        if (parts.length >= 3 && parts[0] && parts[1] && parts[2]) {
-                            // Validation de l'identifiant (format nom.prenom)
-                            if (!parts[0].includes('.') || parts[0].split('.').length !== 2) {
-                                errorLines.push({
-                                    line: index + 1,
-                                    error: 'Format identifiant incorrect (attendu: nom.prenom)',
-                                    data: parts[0]
-                                });
-                                return;
-                            }
-
-                            // Validation de la classe
-                            const validClasses = ['6G1','6G2','6G3','6G4','6G5','6G6','6G7','6G8','6G9',
-                                                '5G1','5G2','5G3','5G4','5G5','5G6','5G7','5G8','5G9',
-                                                '4G1','4G2','4G3','4G4','4G5','4G6','4G7','4G8','4G9',
-                                                '3G1','3G2','3G3','3G4','3G5','3G6','3G7','3G8','3G9'];
-                            
-                            if (!validClasses.includes(parts[1])) {
-                                errorLines.push({
-                                    line: index + 1,
-                                    error: 'Classe non reconnue',
-                                    data: parts[1]
-                                });
-                                return;
-                            }
-
-                            // Validation du mot de passe (minimum 4 caractères)
-                            if (parts[2].length < 4) {
-                                errorLines.push({
-                                    line: index + 1,
-                                    error: 'Mot de passe trop court (minimum 4 caractères)',
-                                    data: parts[2]
-                                });
-                                return;
-                            }
-
-                            // Vérifier si l'élève existe déjà
-                            const existingStudent = studentsList.find(s => s.id === parts[0] && s.class === parts[1]);
-                            if (existingStudent) {
-                                duplicateStudents.push({
-                                    id: parts[0],
-                                    class: parts[1]
-                                });
-                                return;
-                            }
-
-                            // Ajouter l'élève valide
-                            importedStudents.push({
-                                id: parts[0],
-                                class: parts[1],
-                                tempPassword: parts[2],
-                                password: null
-                            });
-                        } else {
-                            errorLines.push({
-                                line: index + 1,
-                                error: 'Format incorrect (3 colonnes requises)',
-                                data: trimmedLine
-                            });
-                        }
+            const lines = pasteData.split('\n');
+            const newStudents = [];
+            lines.forEach(line => {
+                const parts = line.split(/\t+/).map(part => part.trim());
+                if (parts.length >= 3) {
+                    const [id, sClass, tempPassword] = parts;
+                    if (id && sClass && tempPassword && !appState.studentsList.find(s => s.id === id && s.class === sClass)) {
+                        newStudents.push({ id: id.toLowerCase(), class: sClass, tempPassword, password: null });
                     }
-                });
-
-                // Afficher les erreurs détaillées
-                if (errorLines.length > 0) {
-                    let errorMessage = '⚠️ ERREURS DÉTECTÉES :\n\n';
-                    errorLines.slice(0, 5).forEach(error => {
-                        errorMessage += `Ligne ${error.line}: ${error.error}\n`;
-                        errorMessage += `Données: "${error.data}"\n\n`;
-                    });
-                    
-                    if (errorLines.length > 5) {
-                        errorMessage += `... et ${errorLines.length - 5} autres erreurs\n\n`;
-                    }
-                    
-                    errorMessage += '📋 FORMAT ATTENDU :\n';
-                    errorMessage += 'nom.prenom [TAB] classe [TAB] motdepasse\n\n';
-                    errorMessage += 'Exemple :\n';
-                    errorMessage += 'martin.jean	6G1	temp123';
-                    
-                    alert(errorMessage);
                 }
+            });
 
-                // Afficher les doublons
-                if (duplicateStudents.length > 0) {
-                    let duplicateMessage = '🔄 ÉLÈVES DÉJÀ PRÉSENTS :\n\n';
-                    duplicateStudents.slice(0, 10).forEach(dup => {
-                        duplicateMessage += `• ${dup.id} (${dup.class})\n`;
-                    });
-                    
-                    if (duplicateStudents.length > 10) {
-                        duplicateMessage += `... et ${duplicateStudents.length - 10} autres`;
-                    }
-                    
-                    alert(duplicateMessage);
-                }
-
-                if (importedStudents.length === 0) {
-                    alert('❌ AUCUN ÉLÈVE IMPORTÉ !\n\n' +
-                          'Causes possibles :\n' +
-                          '• Format des données incorrect\n' +
-                          '• Tous les élèves sont déjà présents\n' +
-                          '• Erreurs de validation\n\n' +
-                          'Vérifiez le format et corrigez les erreurs.');
-                    return;
-                }
-
-                // Ajouter les nouveaux élèves à la liste existante
-                studentsList.push(...importedStudents);
-                saveData();
+            if (newStudents.length > 0) {
+                appState.studentsList.push(...newStudents);
+                saveState();
                 displayStudents();
-                
-                // Vider la zone de texte
                 document.getElementById('studentDataPaste').value = '';
-                
-                let successMessage = `✅ IMPORTATION RÉUSSIE !\n\n`;
-                successMessage += `• ${importedStudents.length} élève(s) importé(s)\n`;
-                
-                if (duplicateStudents.length > 0) {
-                    successMessage += `• ${duplicateStudents.length} doublon(s) ignoré(s)\n`;
-                }
-                
-                if (errorLines.length > 0) {
-                    successMessage += `• ${errorLines.length} erreur(s) corrigée(s)\n`;
-                }
-                
-                alert(successMessage);
-                
-            } catch (error) {
-                console.error('Erreur importation:', error);
-                alert('❌ ERREUR TECHNIQUE !\n\n' +
-                      'Une erreur inattendue s\'est produite lors de l\'importation.\n\n' +
-                      'Vérifiez le format des données et réessayez.\n\n' +
-                      'Détail : ' + error.message);
+                alert(`✅ ${newStudents.length} élève(s) importé(s) avec succès.`);
+            } else {
+                alert('❌ Aucun nouvel élève à importer. Vérifiez le format ou les doublons.');
             }
         }
 
-        function clearPasteArea() {
-            document.getElementById('studentDataPaste').value = '';
-        }
+        function clearPasteArea() { document.getElementById('studentDataPaste').value = ''; }
 
         function addStudent() {
-            const id = document.getElementById('newStudentId').value.trim();
+            const id = document.getElementById('newStudentId').value.trim().toLowerCase();
             const studentClass = document.getElementById('newStudentClass').value;
             const tempPassword = document.getElementById('newStudentTempPass').value.trim();
 
-            // Validation des champs obligatoires
-            if (!id || !studentClass || !tempPassword) {
-                alert('⚠️ CHAMPS OBLIGATOIRES !\n\n' +
-                      'Veuillez remplir tous les champs :\n' +
-                      '• Identifiant (format: nom.prenom)\n' +
-                      '• Classe\n' +
-                      '• Mot de passe provisoire');
-                return;
-            }
+            if (!id || !studentClass || !tempPassword) return alert('⚠️ Veuillez remplir tous les champs.');
+            if (appState.studentsList.find(s => s.id === id && s.class === studentClass)) return alert('🔄 Cet élève existe déjà.');
 
-            // Validation de l'identifiant (format nom.prenom)
-            if (!id.includes('.') || id.split('.').length !== 2) {
-                alert('❌ FORMAT IDENTIFIANT INCORRECT !\n\n' +
-                      'L\'identifiant doit être au format : nom.prenom\n\n' +
-                      'Exemples valides :\n' +
-                      '• martin.jean\n' +
-                      '• dupont.marie\n' +
-                      '• bernard.paul');
-                return;
-            }
-
-            // Validation du mot de passe (minimum 4 caractères)
-            if (tempPassword.length < 4) {
-                alert('❌ MOT DE PASSE TROP COURT !\n\n' +
-                      'Le mot de passe provisoire doit contenir au minimum 4 caractères.\n\n' +
-                      'Mot de passe actuel : ' + tempPassword.length + ' caractère(s)');
-                return;
-            }
-
-            // Vérifier si l'élève existe déjà
-            const existingStudent = studentsList.find(s => s.id === id && s.class === studentClass);
-            if (existingStudent) {
-                alert('🔄 ÉLÈVE DÉJÀ PRÉSENT !\n\n' +
-                      'Cet élève existe déjà dans cette classe :\n' +
-                      '• Identifiant : ' + id + '\n' +
-                      '• Classe : ' + studentClass + '\n\n' +
-                      'Vérifiez les informations ou modifiez l\'identifiant.');
-                return;
-            }
-
-            try {
-                const newStudent = {
-                    id: id.toLowerCase(), // Normaliser en minuscules
-                    class: studentClass,
-                    tempPassword: tempPassword,
-                    password: null
-                };
-
-                studentsList.push(newStudent);
-                saveData();
-
-                // Réinitialiser les champs
-                document.getElementById('newStudentId').value = '';
-                document.getElementById('newStudentClass').value = '';
-                document.getElementById('newStudentTempPass').value = '';
-
-                // Actualiser l'affichage
-                displayStudents();
-                
-                alert('✅ ÉLÈVE AJOUTÉ AVEC SUCCÈS !\n\n' +
-                      '• Identifiant : ' + newStudent.id + '\n' +
-                      '• Classe : ' + newStudent.class + '\n' +
-                      '• Mot de passe provisoire : ' + newStudent.tempPassword + '\n\n' +
-                      'L\'élève peut maintenant se connecter avec ces informations.');
-                      
-            } catch (error) {
-                console.error('Erreur ajout élève:', error);
-                alert('❌ ERREUR TECHNIQUE !\n\n' +
-                      'Impossible d\'ajouter l\'élève.\n' +
-                      'Veuillez réessayer.\n\n' +
-                      'Détail : ' + error.message);
-            }
+            appState.studentsList.push({ id, class: studentClass, tempPassword, password: null });
+            saveState();
+            displayStudents();
+            document.getElementById('newStudentId').value = '';
+            document.getElementById('newStudentClass').value = '';
+            document.getElementById('newStudentTempPass').value = '';
+            alert('✅ Élève ajouté avec succès.');
         }
 
         function displayStudents() {
-            const studentsTableBody = document.getElementById('studentsTableBody');
-            
-            if (studentsList.length === 0) {
-                studentsTableBody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Aucun élève inscrit</td></tr>';
+            const tbody = document.getElementById('studentsTableBody');
+            if (appState.studentsList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Aucun élève inscrit</td></tr>';
                 return;
             }
-
-            let tableHTML = '';
-            studentsList.forEach(student => {
-                const statusClass = student.password ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-                const statusText = student.password ? 'Inscrit' : 'En attente';
-                const passwordDisplay = student.password ? student.password : '-';
-                
-                tableHTML += '<tr class="border-b border-gray-200 hover:bg-gray-50">';
-                tableHTML += '<td class="px-4 py-3 text-sm">' + student.id + '</td>';
-                tableHTML += '<td class="px-4 py-3 text-sm">' + student.class + '</td>';
-                tableHTML += '<td class="px-4 py-3 text-sm font-mono">' + student.tempPassword + '</td>';
-                tableHTML += '<td class="px-4 py-3 text-sm font-mono">' + passwordDisplay + '</td>';
-                tableHTML += '<td class="px-4 py-3 text-sm">';
-                tableHTML += '<span class="px-2 py-1 rounded-full text-xs ' + statusClass + '">';
-                tableHTML += statusText;
-                tableHTML += '</span>';
-                tableHTML += '</td>';
-                tableHTML += '</tr>';
-            });
-            
-            studentsTableBody.innerHTML = tableHTML;
+            tbody.innerHTML = appState.studentsList.map(student => `
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">${student.id}</td>
+                    <td class="px-4 py-3 text-sm">${student.class}</td>
+                    <td class="px-4 py-3 text-sm font-mono">${student.tempPassword}</td>
+                    <td class="px-4 py-3 text-sm font-mono">${student.password || '-'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded-full text-xs ${student.password ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${student.password ? 'Inscrit' : 'En attente'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
         }
 
         function displayReports() {
-            const reportsList_div = document.getElementById('reportsList');
-            
-            if (reportsList.length === 0) {
-                reportsList_div.innerHTML = '<p class="text-gray-500 text-center py-8">Aucun signalement reçu.</p>';
+            const container = document.getElementById('reportsList');
+            if (appState.reportsList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Aucun signalement reçu.</p>';
                 return;
             }
-
-            let reportsHTML = '';
-            reportsList.forEach(report => {
-                const bgClass = report.seen ? 'bg-gray-50' : 'bg-yellow-50';
-                const roleText = report.role === 'victime' ? 'Victime' : 'Témoin';
-                const seenChecked = report.seen ? 'checked' : '';
-                const treatedChecked = report.treated ? 'checked' : '';
-                
-                reportsHTML += '<div class="border border-gray-200 rounded-lg p-6 ' + bgClass + '">';
-                reportsHTML += '<div class="flex justify-between items-start mb-4">';
-                reportsHTML += '<div>';
-                reportsHTML += '<h4 class="font-semibold text-lg">Signalement #' + report.id + '</h4>';
-                reportsHTML += '<p class="text-sm text-gray-600">Élève: ' + report.studentId + ' (' + report.studentClass + ') - ' + report.date + '</p>';
-                reportsHTML += '</div>';
-                reportsHTML += '<div class="flex gap-2">';
-                reportsHTML += '<label class="flex items-center">';
-                reportsHTML += '<input type="checkbox" ' + seenChecked + ' onchange="toggleSeen(' + report.id + ')" class="mr-2">';
-                reportsHTML += '<span class="text-sm">Vu</span>';
-                reportsHTML += '</label>';
-                reportsHTML += '<label class="flex items-center">';
-                reportsHTML += '<input type="checkbox" ' + treatedChecked + ' onchange="toggleTreated(' + report.id + ')" class="mr-2">';
-                reportsHTML += '<span class="text-sm">Traité</span>';
-                reportsHTML += '</label>';
-                reportsHTML += '</div>';
-                reportsHTML += '</div>';
-                reportsHTML += '<div class="grid md:grid-cols-3 gap-4 mb-4">';
-                reportsHTML += '<p><strong>Rôle:</strong> ' + roleText + '</p>';
-                reportsHTML += '<p><strong>Lieu:</strong> ' + report.location + '</p>';
-                reportsHTML += '<p><strong>Fréquence:</strong> ' + report.frequency + '</p>';
-                reportsHTML += '</div>';
-                reportsHTML += '<div>';
-                reportsHTML += '<p><strong>Description:</strong></p>';
-                reportsHTML += '<p class="mt-2 p-3 bg-white rounded border">' + report.description + '</p>';
-                reportsHTML += '</div>';
-                reportsHTML += '</div>';
-            });
-            
-            reportsList_div.innerHTML = reportsHTML;
+            container.innerHTML = appState.reportsList.map(report => `
+                <div class="border border-gray-200 rounded-lg p-6 ${report.seen ? 'bg-gray-50' : 'bg-yellow-50'}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-semibold text-lg">Signalement #${report.id}</h4>
+                            <p class="text-sm text-gray-600">Élève: ${report.studentId} (${report.studentClass}) - ${report.date}</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <label class="flex items-center"><input type="checkbox" ${report.seen ? 'checked' : ''} onchange="toggleSeen(${report.id})" class="mr-2">Vu</label>
+                            <label class="flex items-center"><input type="checkbox" ${report.treated ? 'checked' : ''} onchange="toggleTreated(${report.id})" class="mr-2">Traité</label>
+                        </div>
+                    </div>
+                    <p><strong>Rôle:</strong> ${report.role} | <strong>Lieu:</strong> ${report.location} | <strong>Fréquence:</strong> ${report.frequency}</p>
+                    <p class="mt-2 p-3 bg-white rounded border"><strong>Description:</strong> ${report.description}</p>
+                </div>
+            `).join('');
         }
 
         function toggleSeen(reportId) {
-            const report = reportsList.find(r => r.id === reportId);
+            const report = appState.reportsList.find(r => r.id === reportId);
             if (report) {
                 report.seen = !report.seen;
-                saveData();
+                saveState();
+                displayReports(); // Re-render to update style
             }
         }
 
         function toggleTreated(reportId) {
-            const report = reportsList.find(r => r.id === reportId);
+            const report = appState.reportsList.find(r => r.id === reportId);
             if (report) {
                 report.treated = !report.treated;
-                saveData();
+                saveState();
             }
         }
 
         // Gestion administrateur
         function uploadLogo() {
-            const fileInput = document.getElementById('logoFile');
-            const file = fileInput.files[0];
-
-            if (!file) {
-                alert('Veuillez sélectionner un fichier image.');
-                return;
-            }
-
+            const file = document.getElementById('logoFile').files[0];
+            if (!file) return alert('Veuillez sélectionner un fichier image.');
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const logoData = e.target.result;
-                localStorage.setItem('schoolLogo', logoData);
-                document.getElementById('logoContainer').innerHTML = '<img src="' + logoData + '" alt="Logo établissement" class="w-24 h-24 mx-auto rounded-full object-cover">';
+            reader.onload = e => {
+                appState.schoolLogo = e.target.result;
+                saveState();
+                updateDisplay();
                 alert('Logo téléchargé avec succès.');
             };
             reader.readAsDataURL(file);
@@ -1335,99 +888,45 @@ bernard.paul	5A	temp789"></textarea>
 
         function changeSchoolName() {
             const newName = document.getElementById('schoolNameInput').value.trim();
-            
-            if (!newName) {
-                alert('Veuillez saisir un nom d\'établissement.');
-                return;
-            }
-
-            localStorage.setItem('schoolName', newName);
-            document.getElementById('schoolTitle').textContent = newName;
+            if (!newName) return alert('Veuillez saisir un nom d\'établissement.');
+            appState.schoolName = newName;
+            saveState();
+            updateDisplay();
             alert('Nom de l\'établissement modifié avec succès.');
         }
 
         function changeReferentPassword() {
             const newPassword = document.getElementById('newReferentPassword').value;
-            
-            if (!newPassword) {
-                alert('Veuillez saisir un nouveau mot de passe.');
-                return;
-            }
-
-            referentPassword = newPassword;
-            saveData();
+            if (!newPassword) return alert('Veuillez saisir un nouveau mot de passe.');
+            appState.referentPassword = newPassword;
+            saveState();
             document.getElementById('newReferentPassword').value = '';
             alert('Mot de passe référent modifié avec succès.');
         }
 
         function resetApplication() {
-            if (!confirm('⚠️ RÉINITIALISATION COMPLÈTE !\n\n' +
-                        'Cette action va SUPPRIMER DÉFINITIVEMENT :\n' +
-                        '• Tous les élèves (' + studentsList.length + ')\n' +
-                        '• Tous les signalements (' + reportsList.length + ')\n' +
-                        '• Toute la configuration personnalisée\n' +
-                        '• Le logo et le nom de l\'établissement\n\n' +
-                        '💾 RECOMMANDATION : Exportez vos données avant de continuer\n\n' +
-                        'Voulez-vous vraiment réinitialiser ?')) {
-                return;
-            }
+            if (!confirm('⚠️ RÉINITIALISATION COMPLÈTE !\n\nCette action va SUPPRIMER DÉFINITIVEMENT toutes les données. Êtes-vous sûr ?')) return;
+            if (!confirm('⚠️ DERNIÈRE CONFIRMATION !\n\nCette action est IRRÉVERSIBLE. Continuer ?')) return;
 
-            if (!confirm('⚠️ DERNIÈRE CONFIRMATION !\n\n' +
-                        'Cette action est IRRÉVERSIBLE.\n\n' +
-                        'Toutes vos données seront perdues à jamais.\n\n' +
-                        'Confirmez-vous définitivement la réinitialisation ?')) {
-                return;
-            }
-
-            try {
-                // Vider toutes les données
-                localStorage.clear();
-                studentsList = [];
-                reportsList = [];
-                referentPassword = INITIAL_CONFIG.referentPassword;
-                
-                // Réappliquer la configuration initiale
-                applyInitialConfiguration();
-                updateDisplay();
-                
-                // Retourner à l'accueil
-                showHome();
-                
-                alert('✅ RÉINITIALISATION TERMINÉE !\n\n' +
-                      'L\'application a été remise à zéro.\n' +
-                      'La configuration initiale a été restaurée.\n\n' +
-                      'Vous pouvez maintenant reconfigurer l\'application.');
-                      
-            } catch (error) {
-                console.error('Erreur réinitialisation:', error);
-                alert('❌ Erreur lors de la réinitialisation !\n\n' +
-                      'Veuillez actualiser la page et réessayer.');
-            }
+            localStorage.removeItem('antiHarcelementAppState');
+            loadState(); // Re-load initial state
+            updateDisplay();
+            showHome();
+            alert('✅ RÉINITIALISATION TERMINÉE !');
         }
 
         // Déconnexions
-        function studentLogout() {
-            currentUser = null;
-            showHome();
-        }
+        function studentLogout() { currentUser = null; showHome(); }
+        function referentLogout() { showHome(); }
+        function adminLogout() { showHome(); }
 
-        function referentLogout() {
-            showHome();
-        }
-
-        function adminLogout() {
-            showHome();
-        }
-
-        // Gestion de la popup de mot de passe
+        // Modal de mot de passe
         function showPasswordModal(password) {
             document.getElementById('generatedPassword').textContent = password;
             document.getElementById('passwordModal').classList.remove('hidden');
         }
-
         function closePasswordModal() {
             document.getElementById('passwordModal').classList.add('hidden');
-            // currentUser est déjà défini dans handleStudentLogin
             if (currentUser) {
                 hideAllPages();
                 document.getElementById('studentReportPage').classList.remove('hidden');
@@ -1435,62 +934,21 @@ bernard.paul	5A	temp789"></textarea>
                 showHome();
             }
         }
-
         function backToLogin() {
             document.getElementById('passwordModal').classList.add('hidden');
             currentUser = null;
-            // Réinitialiser le formulaire de connexion
             document.getElementById('studentLoginForm').reset();
-            hideAllPages();
-            document.getElementById('studentLoginPage').classList.remove('hidden');
+            showStudentLogin();
         }
-
         function copyPassword() {
             const password = document.getElementById('generatedPassword').textContent;
-            
-            // Méthode moderne pour copier
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(password).then(() => {
-                    alert('✅ Mot de passe copié dans le presse-papiers !');
-                }).catch(() => {
-                    // Fallback si la copie échoue
-                    fallbackCopy(password);
-                });
-            } else {
-                // Fallback pour les navigateurs plus anciens
-                fallbackCopy(password);
-            }
-        }
-
-        function fallbackCopy(text) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            
-            try {
-                document.execCommand('copy');
-                alert('✅ Mot de passe copié dans le presse-papiers !');
-            } catch (err) {
-                alert('❌ Impossible de copier automatiquement. Sélectionnez et copiez manuellement le mot de passe.');
-            }
-            
-            document.body.removeChild(textArea);
+            navigator.clipboard.writeText(password).then(() => alert('✅ Mot de passe copié !'));
         }
 
         // Utilitaires
         function generatePassword() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let password = '';
-            for (let i = 0; i < 8; i++) {
-                password += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return password;
+            return Math.random().toString(36).slice(-8);
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97282c92b7112a19',t:'MTc1NTc1ODc5NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
