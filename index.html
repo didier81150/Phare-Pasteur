@@ -527,11 +527,12 @@ bernard.paul	5A	temp789"></textarea>
             schoolName: "Collège [NOM DE VOTRE ÉTABLISSEMENT]", // Changez le nom ici
             referentPassword: "Ph@re2025", // Changez ce mot de passe
             schoolLogo: null, // Sera défini plus bas si vous avez un logo
-            initialStudents: [
-                // Exemple d'élèves pré-configurés (supprimez ou modifiez selon vos besoins)
-                // { id: "test.eleve", class: "6G1", tempPassword: "test123", password: null }
-                // { id: "dupont.marie", class: "6G2", tempPassword: "temp456", password: null }
-            ]
+            initialStudents: `
+                // Collez vos listes d'élèves ici, au format : identifiant [TAB] classe [TAB] motdepasse
+                // Exemple :
+                // martin.jean	6G1	mdpjean123
+                // dupont.marie	6G2	mdpmarie456
+            `
         };
 
         // Logo par défaut en base64 (remplacez par votre logo si nécessaire)
@@ -588,8 +589,9 @@ bernard.paul	5A	temp789"></textarea>
             }
             
             // Ajouter les élèves initiaux
-            if (INITIAL_CONFIG.initialStudents && INITIAL_CONFIG.initialStudents.length > 0) {
-                studentsList = [...INITIAL_CONFIG.initialStudents];
+            const initialStudentsParsed = parseInitialStudents(INITIAL_CONFIG.initialStudents);
+            if (initialStudentsParsed.length > 0) {
+                studentsList = [...initialStudentsParsed];
                 localStorage.setItem('studentsList', JSON.stringify(studentsList));
             }
         }
@@ -960,6 +962,29 @@ bernard.paul	5A	temp789"></textarea>
 
             localStorage.setItem('referentEmails', JSON.stringify(emails));
             alert('✅ Adresses email des référents enregistrées avec succès !');
+        }
+
+        function parseInitialStudents(studentString) {
+            const students = [];
+            const lines = studentString.trim().split('\n');
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('//') || trimmedLine === '') {
+                    return; // Ignorer les commentaires et les lignes vides
+                }
+
+                const parts = trimmedLine.split(/\t+|\s{2,}/).map(part => part.trim());
+                if (parts.length === 3) {
+                    students.push({
+                        id: parts[0],
+                        class: parts[1],
+                        tempPassword: parts[2],
+                        password: null
+                    });
+                }
+            });
+            return students;
         }
 
         function loadReferentEmails() {
