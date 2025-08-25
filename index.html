@@ -267,6 +267,20 @@
                     </div>
                 </div>
 
+                <!-- Gestion des emails -->
+                <div class="mb-8 p-6 bg-yellow-50 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4">📧 Gestion des emails des référents</h3>
+                    <p class="text-sm text-gray-600 mb-3">Saisissez jusqu'à 3 adresses email qui recevront les signalements.</p>
+                    <div class="space-y-3">
+                        <input type="email" id="refEmail1" placeholder="adresse.email1@academie.fr" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input type="email" id="refEmail2" placeholder="adresse.email2@academie.fr" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <input type="email" id="refEmail3" placeholder="adresse.email3@academie.fr" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    <button onclick="saveReferentEmails()" class="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md">
+                        Enregistrer les adresses
+                    </button>
+                </div>
+
                 <!-- Gestion liste élèves -->
                 <div class="mb-8 p-6 bg-gray-50 rounded-lg">
                     <h3 class="text-lg font-semibold mb-4">Gestion de la liste des élèves</h3>
@@ -931,8 +945,30 @@ bernard.paul	5A	temp789"></textarea>
                 document.getElementById('referentDashboard').classList.remove('hidden');
                 displayStudents();
                 displayReports();
+                loadReferentEmails();
             } else {
                 alert('Mot de passe incorrect.');
+            }
+        }
+
+        function saveReferentEmails() {
+            const emails = [
+                document.getElementById('refEmail1').value.trim(),
+                document.getElementById('refEmail2').value.trim(),
+                document.getElementById('refEmail3').value.trim()
+            ];
+
+            localStorage.setItem('referentEmails', JSON.stringify(emails));
+            alert('✅ Adresses email des référents enregistrées avec succès !');
+        }
+
+        function loadReferentEmails() {
+            const savedEmails = localStorage.getItem('referentEmails');
+            if (savedEmails) {
+                const emails = JSON.parse(savedEmails);
+                document.getElementById('refEmail1').value = emails[0] || '';
+                document.getElementById('refEmail2').value = emails[1] || '';
+                document.getElementById('refEmail3').value = emails[2] || '';
             }
         }
 
@@ -975,7 +1011,42 @@ bernard.paul	5A	temp789"></textarea>
             reportsList.push(report);
             saveData();
 
-            alert('Votre signalement a été envoyé avec succès. L\'équipe Phare va être alertée.');
+            // Préparer et envoyer l'email
+            const savedEmails = localStorage.getItem('referentEmails');
+            if (savedEmails) {
+                const emails = JSON.parse(savedEmails).filter(e => e); // Filtrer les emails vides
+                if (emails.length > 0) {
+                    const to = emails.join(',');
+                    const subject = "Signalement Phare";
+
+                    const body = `
+Nouveau signalement reçu :
+
+-----------------------------------
+INFORMATIONS SUR LE SIGNALEMENT
+-----------------------------------
+- Signalé par : ${report.studentId}
+- Classe : ${report.studentClass}
+- Rôle déclaré : ${report.role}
+- Date : ${report.date}
+- Lieu des faits : ${report.location}
+- Fréquence : ${report.frequency}
+
+-----------------------------------
+DESCRIPTION DE LA SITUATION
+-----------------------------------
+${report.description}
+
+-----------------------------------
+Ceci est un message automatique généré par l'application Anti-Harcèlement.
+                    `.trim();
+
+                    const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoLink;
+                }
+            }
+
+            alert('Signalement sauvegardé ! Votre application d\'email va s\'ouvrir pour que vous puissiez l\'envoyer aux référents. N\'oubliez pas d\'appuyer sur \'Envoyer\' dans votre application d\'email.');
             document.getElementById('reportForm').reset();
         }
 
